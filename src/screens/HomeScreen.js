@@ -13,13 +13,21 @@ const HomeScreen = ({ navigation }) => {
 
   // Zustand persist auto-loads settings, no need for manual load
 
+  const [scanProgress, setScanProgress] = useState({ phase: '', current: 0, total: 0 });
+
   const handleScan = async () => {
     console.log('handleScan called');
     setIsLoading(true);
     setIsScanning(true);
     try {
       console.log('Starting scan...');
-      const results = await scanPhotos();
+      const results = await scanPhotos({
+        deepScan: true,
+        includeVisualSimilarity: true,
+        onProgress: (progress) => {
+          setScanProgress(progress);
+        }
+      });
       console.log('Scan complete:', results);
       setScanResults(results);
       setHasScanned(true);
@@ -29,10 +37,11 @@ const HomeScreen = ({ navigation }) => {
     } finally {
       setIsLoading(false);
       setIsScanning(false);
+      setScanProgress({ phase: '', current: 0, total: 0 });
     }
   };
 
-  const totalPhotos = scanResults.screenshots + scanResults.blurry + scanResults.duplicates + scanResults.old;
+  const totalPhotos = scanResults.screenshots + scanResults.blurry + scanResults.duplicates;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -50,7 +59,9 @@ const HomeScreen = ({ navigation }) => {
           {isScanning || isLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#10B981" />
-              <Text style={styles.loadingText}>Scanning your photos...</Text>
+              <Text style={styles.loadingText}>
+                {scanProgress.phase && `${scanProgress.phase}: ${scanProgress.current}/${scanProgress.total}` || 'Scanning your photos...'}
+              </Text>
             </View>
           ) : totalPhotos > 0 ? (
             <>
@@ -111,15 +122,6 @@ const HomeScreen = ({ navigation }) => {
                   space={formatBytes(scanResults.duplicates * 1024 * 1000)}
                   color="#10B981"
                   onPress={() => navigation.navigate('Category', { type: 'duplicates' })}
-                />
-              )}
-              {scanResults.old > 0 && (
-                <CategoryCard
-                  title="old"
-                  count={scanResults.old}
-                  space={formatBytes(scanResults.old * 1024 * 2000)}
-                  color="#8B5CF6"
-                  onPress={() => navigation.navigate('Category', { type: 'old' })}
                 />
               )}
             </View>

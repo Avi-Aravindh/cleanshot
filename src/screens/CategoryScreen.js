@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -12,12 +12,12 @@ const CategoryScreen = ({ route, navigation }) => {
   const { scanResults, addCleanupRecord, setScanResults } = useStore();
   const [selectedPhotos, setSelectedPhotos] = useState([]);
   const [isSelecting, setIsSelecting] = useState(false);
+  const [previewPhoto, setPreviewPhoto] = useState(null);
 
   const categoryNames = {
     screenshots: 'Screenshots',
     blurry: 'Blurry Photos',
     duplicates: 'Duplicates',
-    old: 'Old Photos',
   };
 
   // Refresh photos when screen comes into focus
@@ -25,14 +25,13 @@ const CategoryScreen = ({ route, navigation }) => {
     useCallback(() => {
       console.log('CategoryScreen focused, type:', type);
       console.log('scanResults.details:', JSON.stringify(scanResults.details, null, 2));
-      
+
       if (scanResults.details && scanResults.details[type]) {
         console.log('Found', scanResults.details[type].length, 'photos for', type);
-        // Update state directly instead of using separate photos state
       } else {
         console.log('No photos found for', type);
       }
-      
+
       // Reset selection when screen focuses
       setSelectedPhotos([]);
       setIsSelecting(false);
@@ -42,22 +41,60 @@ const CategoryScreen = ({ route, navigation }) => {
   // Get photos directly from store (no local state)
   const photos = (scanResults.details && scanResults.details[type]) || [];
 
+  // Handle Done/Cancel button
+  const handleDoneOrCancel = () => {
+    if (isSelecting) {
+      // Exit selection mode and clear selections
+      setIsSelecting(false);
+      setSelectedPhotos([]);
+    }
+  };
+
+  // Select/Deselect All
+  const handleSelectAll = () => {
+    if (selectedPhotos.length === photos.length) {
+      // Deselect all
+      setSelectedPhotos([]);
+    } else {
+      // Select all
+      setSelectedPhotos(photos.map(p => p.id));
+    }
+  };
+
   useEffect(() => {
     navigation.setOptions({
       title: categoryNames[type] || 'Category',
       headerRight: () => (
-        <TouchableOpacity 
-          style={styles.headerButton}
-          onPress={() => setIsSelecting(!isSelecting)}
-          disabled={photos.length === 0}
-        >
-          <Text style={[styles.headerButtonText, photos.length === 0 && styles.headerButtonDisabled]}>
-            {isSelecting ? 'Done' : 'Select'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          {isSelecting && (
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={handleSelectAll}
+            >
+              <Text style={styles.headerButtonText}>
+                {selectedPhotos.length === photos.length ? 'Deselect All' : 'Select All'}
+              </Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => {
+              if (isSelecting) {
+                handleDoneOrCancel();
+              } else {
+                setIsSelecting(true);
+              }
+            }}
+            disabled={photos.length === 0}
+          >
+            <Text style={[styles.headerButtonText, photos.length === 0 && styles.headerButtonDisabled]}>
+              {isSelecting ? 'Cancel' : 'Select'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       ),
     });
-  }, [type, photos.length, isSelecting, navigation]);
+  }, [type, photos.length, isSelecting, selectedPhotos.length, navigation]);
 
   const togglePhoto = (photo) => {
     if (selectedPhotos.includes(photo.id)) {
@@ -67,28 +104,40 @@ const CategoryScreen = ({ route, navigation }) => {
     }
   };
 
+  const handlePhotoPress = (photo) => {
+    if (isSelecting) {
+      togglePhoto(photo);
+    } else {
+      // Show preview
+      setPreviewPhoto(photo);
+    }
+  };
+
   const handleDelete = async () => {
-    if (selectedPhotos.length === 0) return;
+    if (selectedPhotos.length === 0) {
+      Alert.alert('No Selection', 'Please select photos to delete');
+      return;
+    }
 
     Alert.alert(
       'Delete Photos',
-      `Delete ${selectedPhotos.length} photos?`,
+      `Are you sure you want to delete ${selectedPhotos.length} photo${selectedPhotos.length > 1 ? 's' : ''}? This action cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        {
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             try {
               const photosToDelete = photos.filter(p => selectedPhotos.includes(p.id));
               await deletePhotos(photosToDelete);
-              
+
               // Update store
               const newDetails = { ...scanResults.details };
               newDetails[type] = photos.filter(p => !selectedPhotos.includes(p.id));
-              
+
               const deletedCount = selectedPhotos.length;
-              
+
               setScanResults({
                 ...scanResults,
                 [type]: newDetails[type].length,
@@ -105,10 +154,11 @@ const CategoryScreen = ({ route, navigation }) => {
 
               setSelectedPhotos([]);
               setIsSelecting(false);
-              
-              Alert.alert('Success', `${deletedCount} photos deleted!`);
+
+              Alert.alert('Success', `${deletedCount} photo${deletedCount > 1 ? 's' : ''} deleted!`);
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete photos');
+              console.error('Delete error:', error);
+              Alert.alert('Error', error.message || 'Failed to delete photos');
             }
           }
         }
@@ -119,24 +169,34 @@ const CategoryScreen = ({ route, navigation }) => {
   const renderPhoto = ({ item }) => {
     const isSelected = selectedPhotos.includes(item.id);
     return (
-      <TouchableOpacity 
-        style={styles.photoItem} 
-        onPress={() => isSelecting ? togglePhoto(item) : null}
+      <TouchableOpacity
+        style={styles.photoItem}
+        onPress={() => handlePhotoPress(item)}
         onLongPress={() => {
-          setIsSelecting(true);
+          if (!isSelecting) {
+            setIsSelecting(true);
+          }
           togglePhoto(item);
         }}
+        activeOpacity={0.7}
       >
-        <Image 
-          source={{ uri: item.uri }} 
+        <Image
+          source={{ uri: item.uri }}
           style={styles.photo}
           resizeMode="cover"
         />
         {isSelecting && (
           <View style={[styles.selectOverlay, isSelected && styles.selectOverlayActive]}>
-            {isSelected && (
-              <Ionicons name="checkmark-circle" size={32} color="#10B981" />
-            )}
+            <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+              {isSelected && (
+                <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+              )}
+            </View>
+          </View>
+        )}
+        {!isSelecting && item.confidence && (
+          <View style={styles.confidenceBadge}>
+            <Text style={styles.confidenceText}>{Math.round(item.confidence * 100)}%</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -146,10 +206,18 @@ const CategoryScreen = ({ route, navigation }) => {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Selection Bar */}
-      {isSelecting && selectedPhotos.length > 0 && (
+      {isSelecting && (
         <View style={styles.selectionBar}>
-          <Text style={styles.selectionCount}>{selectedPhotos.length} selected</Text>
-          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+          <Text style={styles.selectionCount}>
+            {selectedPhotos.length > 0
+              ? `${selectedPhotos.length} selected`
+              : 'Select photos to delete'}
+          </Text>
+          <TouchableOpacity
+            style={[styles.deleteButton, selectedPhotos.length === 0 && styles.deleteButtonDisabled]}
+            onPress={handleDelete}
+            disabled={selectedPhotos.length === 0}
+          >
             <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
             <Text style={styles.deleteButtonText}>Delete</Text>
           </TouchableOpacity>
@@ -173,6 +241,63 @@ const CategoryScreen = ({ route, navigation }) => {
           <Text style={styles.emptySubtext}>Run a scan to find clutter</Text>
         </View>
       )}
+
+      {/* Photo Preview Modal */}
+      <Modal
+        visible={previewPhoto !== null}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setPreviewPhoto(null)}
+      >
+        <View style={styles.modalContainer}>
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setPreviewPhoto(null)}
+          >
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={() => setPreviewPhoto(null)} style={styles.closeButton}>
+                  <Ionicons name="close" size={28} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+              {previewPhoto && (
+                <>
+                  <Image
+                    source={{ uri: previewPhoto.uri }}
+                    style={styles.previewImage}
+                    resizeMode="contain"
+                  />
+                  <View style={styles.previewInfo}>
+                    <Text style={styles.previewFilename}>{previewPhoto.filename}</Text>
+                    {previewPhoto.confidence && (
+                      <Text style={styles.previewConfidence}>
+                        Confidence: {Math.round(previewPhoto.confidence * 100)}%
+                      </Text>
+                    )}
+                    <Text style={styles.previewDimensions}>
+                      {previewPhoto.width} × {previewPhoto.height}
+                    </Text>
+                  </View>
+                  <View style={styles.previewActions}>
+                    <TouchableOpacity
+                      style={styles.previewDeleteButton}
+                      onPress={() => {
+                        setSelectedPhotos([previewPhoto.id]);
+                        setPreviewPhoto(null);
+                        setIsSelecting(true);
+                      }}
+                    >
+                      <Ionicons name="trash-outline" size={24} color="#EF4444" />
+                      <Text style={styles.previewDeleteText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -182,8 +307,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   headerButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 8,
   },
   headerButtonText: {
@@ -217,6 +346,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
   },
+  deleteButtonDisabled: {
+    backgroundColor: '#CBD5E1',
+  },
   deleteButtonText: {
     color: '#FFFFFF',
     fontWeight: '600',
@@ -233,16 +365,45 @@ const styles = StyleSheet.create({
   photo: {
     flex: 1,
     borderRadius: 8,
+    backgroundColor: '#E2E8F0',
   },
   selectOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.1)',
     borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: 8,
+    alignItems: 'flex-end',
   },
   selectOverlayActive: {
     backgroundColor: 'rgba(16,185,129,0.2)',
+  },
+  checkbox: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
+  },
+  confidenceBadge: {
+    position: 'absolute',
+    bottom: 6,
+    right: 6,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  confidenceText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
   },
   emptyState: {
     flex: 1,
@@ -260,6 +421,72 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#94A3B8',
     marginTop: 4,
+  },
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+  },
+  modalContent: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 16,
+    paddingTop: 50,
+  },
+  closeButton: {
+    padding: 8,
+  },
+  previewImage: {
+    flex: 1,
+    width: '100%',
+  },
+  previewInfo: {
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: 16,
+    alignItems: 'center',
+  },
+  previewFilename: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  previewConfidence: {
+    color: '#10B981',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  previewDimensions: {
+    color: '#94A3B8',
+    fontSize: 12,
+  },
+  previewActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    padding: 20,
+    paddingBottom: 40,
+  },
+  previewDeleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239,68,68,0.2)',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#EF4444',
+  },
+  previewDeleteText: {
+    color: '#EF4444',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });
 

@@ -8,7 +8,6 @@ const defaultState = {
     screenshots: 0,
     blurry: 0,
     duplicates: 0,
-    old: 0,
     totalSpace: 0,
     details: {},
   },
@@ -20,6 +19,8 @@ const defaultState = {
     autoDelete: false,
     sensitivity: 'balanced',
     sensitivityThreshold: 0.4,
+    deepScan: true,
+    includeVisualSimilarity: true,
   },
   cleanupHistory: [],
 };

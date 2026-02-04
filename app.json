@@ -3,6 +3,7 @@
     "name": "CleanShot",
     "slug": "cleanshot",
     "version": "1.0.0",
+    "owner": "aviataravindhdotme",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
