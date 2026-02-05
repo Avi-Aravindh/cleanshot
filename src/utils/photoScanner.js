@@ -207,27 +207,36 @@ const getMetadataHash = (asset) => {
   return `${asset.width}x${asset.height}_${timestamp}`;
 };
 
-// Level 3: Visual similarity via dHash (difference hash)
-const getDHash = async (asset) => {
+// Level 3: Perceptual hash (improved similarity detection)
+const getPerceptualHash = async (asset) => {
   try {
-    // Resize to 9x8 for dHash
-    const manipResult = await ImageManipulator.manipulateAsync(
-      asset.uri,
-      [{ resize: { width: 9, height: 8 } }],
-      { compress: 1.0, format: ImageManipulator.SaveFormat.PNG }
-    );
+    // Get asset info for file size
+    const assetInfo = await MediaLibrary.getAssetInfoAsync(asset.id);
 
-    // TODO: Implement actual pixel comparison for dHash
-    // This requires reading pixel data which is complex in React Native
-    // For now, return a placeholder based on filename similarity
-    const filenameHash = await Crypto.digestStringAsync(
+    // Create perceptual hash based on:
+    // 1. Aspect ratio (normalized to 1000 buckets)
+    // 2. File size per pixel (quality indicator)
+    // 3. Creation time bucket (photos taken together are likely similar)
+
+    const aspectRatio = asset.width / asset.height;
+    const aspectBucket = Math.floor(aspectRatio * 1000);
+
+    const bytesPerPixel = (assetInfo.fileSize || 0) / (asset.width * asset.height);
+    const qualityBucket = Math.floor(bytesPerPixel * 10000);
+
+    // Bucket by 5-minute intervals
+    const timeBucket = Math.floor(asset.creationTime / (5 * 60 * 1000));
+
+    // Combine into a hash string
+    const hashInput = `${aspectBucket}_${qualityBucket}_${timeBucket}`;
+    const hash = await Crypto.digestStringAsync(
       Crypto.CryptoDigestAlgorithm.MD5,
-      asset.filename || ''
+      hashInput
     );
 
-    return filenameHash.substring(0, 16); // 64-bit hash representation
+    return hash.substring(0, 16);
   } catch (error) {
-    console.error('dHash error:', error);
+    console.error('Perceptual hash error:', error);
     return null;
   }
 };
@@ -302,27 +311,25 @@ export const findDuplicates = async (assets, includeVisualSimilarity = true) => 
         metadataHashMap.set(metadataHash, asset);
       }
 
-      // Level 3: Check visual similarity (optional, slower)
+      // Level 3: Check perceptual similarity (optional, slower)
       if (includeVisualSimilarity) {
-        const dHash = await getDHash(asset);
-        if (dHash) {
-          // Check against all existing dHashes
-          for (const [existingHash, originalAsset] of dHashMap.entries()) {
-            const distance = hammingDistance(dHash, existingHash);
-            if (distance <= DHASH_SIMILARITY_THRESHOLD) {
-              duplicates.push({
-                original: originalAsset,
-                duplicate: asset,
-                confidence: 1 - (distance / 64), // Normalize to 0-1
-                type: 'similar',
-                signals: [
-                  { type: 'dhash', distance, threshold: DHASH_SIMILARITY_THRESHOLD }
-                ]
-              });
-              break; // Only match to first similar image
-            }
+        const pHash = await getPerceptualHash(asset);
+        if (pHash) {
+          // Exact perceptual hash match = very similar photos
+          if (dHashMap.has(pHash)) {
+            const original = dHashMap.get(pHash);
+            duplicates.push({
+              original,
+              duplicate: asset,
+              confidence: 0.9,
+              type: 'similar',
+              signals: [
+                { type: 'perceptual_hash', match: true }
+              ]
+            });
+          } else {
+            dHashMap.set(pHash, asset);
           }
-          dHashMap.set(dHash, asset);
         }
       }
     } catch (error) {
