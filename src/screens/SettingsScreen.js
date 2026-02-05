@@ -32,6 +32,11 @@ const SettingsScreen = ({ navigation }) => {
     updateSettings({ notifications: value });
   };
 
+  const handleDarkModeChange = (value) => {
+    setLocalSettings({ ...localSettings, darkMode: value });
+    updateSettings({ darkMode: value });
+  };
+
   const handleClearCache = () => {
     Alert.alert(
       'Clear Cache',
@@ -131,6 +136,32 @@ const SettingsScreen = ({ navigation }) => {
                 </Text>
               </View>
               {localSettings.schedule === option && (
+                <Ionicons name="checkmark" size={20} color="#10B981" />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Appearance */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Appearance</Text>
+          <Text style={styles.sectionSubtitle}>Choose your preferred theme</Text>
+
+          {[
+            { key: 'light', label: 'Light', icon: 'sunny-outline' },
+            { key: 'dark', label: 'Dark', icon: 'moon-outline' },
+            { key: 'auto', label: 'Auto', icon: 'phone-portrait-outline' }
+          ].map((option) => (
+            <TouchableOpacity
+              key={option.key}
+              style={styles.optionRow}
+              onPress={() => handleDarkModeChange(option.key)}
+            >
+              <View style={styles.optionLeft}>
+                <Ionicons name={option.icon} size={24} color="#64748B" />
+                <Text style={styles.optionText}>{option.label}</Text>
+              </View>
+              {localSettings.darkMode === option.key && (
                 <Ionicons name="checkmark" size={20} color="#10B981" />
               )}
             </TouchableOpacity>

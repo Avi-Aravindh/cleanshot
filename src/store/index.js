@@ -21,6 +21,7 @@ const defaultState = {
     sensitivityThreshold: 0.4,
     deepScan: true,
     includeVisualSimilarity: true,
+    darkMode: 'auto', // 'light', 'dark', 'auto'
   },
   cleanupHistory: [],
 };

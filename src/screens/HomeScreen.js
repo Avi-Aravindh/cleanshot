@@ -5,8 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import CategoryCard from '../components/CategoryCard';
 import useStore from '../store';
 import { scanPhotos, formatBytes } from '../utils/photoScanner';
+import { useTheme } from '../theme/useTheme';
 
 const HomeScreen = ({ navigation }) => {
+  const { colors, isDark } = useTheme();
   const { scanResults, setScanResults, setIsScanning, isScanning } = useStore();
   const [isLoading, setIsLoading] = useState(false);
   const [hasScanned, setHasScanned] = useState(false);

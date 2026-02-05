@@ -1,0 +1,33 @@
+// Theme colors for light and dark mode
+export const Colors = {
+  light: {
+    primary: '#10B981',
+    background: '#FFFFFF',
+    backgroundSecondary: '#F8FAFC',
+    surface: '#FFFFFF',
+    text: '#1E293B',
+    textSecondary: '#64748B',
+    textTertiary: '#94A3B8',
+    border: '#E2E8F0',
+    danger: '#EF4444',
+    success: '#10B981',
+    disabled: '#CBD5E1',
+    overlay: 'rgba(0,0,0,0.5)',
+    cardShadow: 'rgba(0,0,0,0.08)',
+  },
+  dark: {
+    primary: '#10B981',
+    background: '#0F172A',
+    backgroundSecondary: '#1E293B',
+    surface: '#1E293B',
+    text: '#F1F5F9',
+    textSecondary: '#94A3B8',
+    textTertiary: '#64748B',
+    border: '#334155',
+    danger: '#EF4444',
+    success: '#10B981',
+    disabled: '#475569',
+    overlay: 'rgba(0,0,0,0.7)',
+    cardShadow: 'rgba(0,0,0,0.3)',
+  },
+};
