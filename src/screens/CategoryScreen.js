@@ -61,6 +61,54 @@ const CategoryScreen = ({ route, navigation }) => {
     }
   };
 
+  // Keep Best / Delete Rest for duplicates
+  const handleKeepBestDeleteRest = () => {
+    if (type !== 'duplicates') return;
+
+    // Group duplicates by their original
+    const groups = {};
+    photos.forEach(photo => {
+      const originalId = photo.duplicateOf || photo.id;
+      if (!groups[originalId]) groups[originalId] = [];
+      groups[originalId].push(photo);
+    });
+
+    // For each group, keep the best (highest quality) and mark rest for deletion
+    const toDelete = [];
+    Object.values(groups).forEach(group => {
+      if (group.length > 1) {
+        // Sort by confidence (highest first), then file size
+        group.sort((a, b) => {
+          if (a.confidence !== b.confidence) return (b.confidence || 0) - (a.confidence || 0);
+          return (b.width * b.height) - (a.width * a.height);
+        });
+        // Keep first (best), delete rest
+        toDelete.push(...group.slice(1).map(p => p.id));
+      }
+    });
+
+    if (toDelete.length === 0) {
+      Alert.alert('No Duplicates', 'No duplicate groups found');
+      return;
+    }
+
+    Alert.alert(
+      'Keep Best, Delete Rest',
+      `This will keep the best photo from each duplicate group and delete ${toDelete.length} others. Continue?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            setSelectedPhotos(toDelete);
+            setIsSelecting(true);
+          }
+        }
+      ]
+    );
+  };
+
   useEffect(() => {
     navigation.setOptions({
       title: categoryNames[type] || 'Category',
@@ -74,6 +122,14 @@ const CategoryScreen = ({ route, navigation }) => {
               <Text style={styles.headerButtonText}>
                 {selectedPhotos.length === photos.length ? 'Deselect All' : 'Select All'}
               </Text>
+            </TouchableOpacity>
+          )}
+          {!isSelecting && type === 'duplicates' && photos.length > 0 && (
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={handleKeepBestDeleteRest}
+            >
+              <Text style={styles.headerButtonText}>Smart Delete</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity

@@ -97,7 +97,7 @@ const HomeScreen = ({ navigation }) => {
         {/* Category Cards */}
         {totalPhotos > 0 && !isLoading && (
           <View style={styles.categoriesSection}>
-            <Text style={styles.sectionTitle}>Found Clutter</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Found Clutter</Text>
             <View style={styles.categoriesGrid}>
               {scanResults.screenshots > 0 && (
                 <CategoryCard
@@ -137,7 +137,6 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
   },
   header: {
     flexDirection: 'row',
@@ -149,7 +148,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#10B981',
   },
   settingsButton: {
     padding: 8,
@@ -159,7 +157,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   statsCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     padding: 24,
     alignItems: 'center',
@@ -172,27 +169,22 @@ const styles = StyleSheet.create({
   },
   statsTitle: {
     fontSize: 16,
-    color: '#64748B',
     marginBottom: 8,
   },
   statsNumber: {
     fontSize: 48,
     fontWeight: '700',
-    color: '#1E293B',
   },
   statsLabel: {
     fontSize: 16,
-    color: '#64748B',
     marginBottom: 8,
   },
   spaceSaved: {
     fontSize: 14,
-    color: '#10B981',
     fontWeight: '500',
   },
   emptyText: {
     fontSize: 16,
-    color: '#94A3B8',
     fontStyle: 'italic',
   },
   emptyState: {
@@ -202,7 +194,6 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#10B981',
     marginTop: 12,
   },
   loadingContainer: {
@@ -211,10 +202,8 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#64748B',
   },
   scanButton: {
-    backgroundColor: '#10B981',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -242,7 +231,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1E293B',
     marginBottom: 16,
   },
   categoriesGrid: {
