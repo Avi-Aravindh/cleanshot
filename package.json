@@ -19,6 +19,7 @@
     "buffer": "^6.0.3",
     "expo": "~54.0.33",
     "expo-crypto": "^15.0.8",
+    "expo-face-detector": "^13.0.2",
     "expo-image": "~3.0.11",
     "expo-image-manipulator": "^14.0.8",
     "expo-media-library": "~18.2.1",

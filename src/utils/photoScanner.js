@@ -457,9 +457,16 @@ export const scanPhotos = async (options = {}) => {
 
       for (const asset of batch) {
         try {
+          const assetInfo = await MediaLibrary.getAssetInfoAsync(asset.id);
+
+          // Skip favorited photos
+          if (assetInfo.isFavorite) {
+            console.log(`Skipping favorited photo: ${asset.filename}`);
+            continue;
+          }
+
           const blurResult = await detectBlur(asset, deepScan);
           if (blurResult.isBlurry) {
-            const assetInfo = await MediaLibrary.getAssetInfoAsync(asset.id);
             categories.totalSpace += assetInfo.fileSize || 0;
             categories.blurry.push({
               ...asset,
