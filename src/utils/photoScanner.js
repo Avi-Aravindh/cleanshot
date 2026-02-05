@@ -1,6 +1,7 @@
 import * as MediaLibrary from 'expo-media-library';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as Crypto from 'expo-crypto';
+import * as FaceDetector from 'expo-face-detector';
 import { Platform } from 'react-native';
 
 // ============================================
