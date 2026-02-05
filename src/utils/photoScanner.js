@@ -4,7 +4,6 @@ import * as Crypto from 'expo-crypto';
 import * as FaceDetector from 'expo-face-detector';
 import { Platform } from 'react-native';
 import { detectBlurAdvanced } from './laplacianBlur';
-import { detectBlurAdvanced } from './laplacianBlur';
 
 // ============================================
 // PHOTO CATEGORIZATION ENGINE (v2.0)
@@ -121,56 +120,19 @@ export const isScreenshot = async (asset) => {
 
 export const detectBlur = async (asset, deepScan = true) => {
   try {
-    if (!deepScan) {
-      // Fast mode: File size heuristic
-      const assetInfo = await MediaLibrary.getAssetInfoAsync(asset.id);
-      const fileSize = assetInfo.fileSize || 0;
-      const pixelCount = (asset.width || 1) * (asset.height || 1);
-      const bytesPerPixel = fileSize / pixelCount;
-
-      // Blurry images compress better (less detail)
-      // Typical sharp JPEG: 0.5-2 bytes/pixel, blurry: <0.3 bytes/pixel
-      const isLowFileSize = bytesPerPixel < 0.3;
-
-      return {
-        isBlurry: isLowFileSize,
-        confidence: isLowFileSize ? 0.6 : 0.3,
-        method: 'fast',
-        signals: [{ type: 'bytes_per_pixel', value: bytesPerPixel, weight: 1.0 }]
-      };
-    }
-
-    // Deep scan mode: Laplacian variance
-    const uri = asset.uri;
-
-    // Resize image to 512px for faster processing
-    const maxDimension = 512;
-    const scale = Math.min(maxDimension / asset.width, maxDimension / asset.height);
-
-    const manipResult = await ImageManipulator.manipulateAsync(
-      uri,
-      [{ resize: { width: asset.width * scale, height: asset.height * scale } }],
-      { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
-    );
-
-    // For now, we'll use file size as proxy until we implement actual Laplacian
-    // TODO: Implement actual edge detection using canvas/pixel manipulation
-    // This requires expo-gl or react-native-image-filter-kit
-
-    const assetInfo = await MediaLibrary.getAssetInfoAsync(asset.id);
-    const fileSize = assetInfo.fileSize || 0;
-    const pixelCount = (asset.width || 1) * (asset.height || 1);
-    const bytesPerPixel = fileSize / pixelCount;
-
-    const isLowFileSize = bytesPerPixel < 0.3;
+    // Use advanced blur detection with multiple metrics
+    const result = await detectBlurAdvanced(asset);
 
     return {
-      isBlurry: isLowFileSize,
-      confidence: isLowFileSize ? 0.7 : 0.3,
-      method: 'deep',
+      isBlurry: result.isBlurry,
+      confidence: result.confidence,
+      method: 'advanced',
+      blurScore: result.blurScore,
       signals: [
-        { type: 'bytes_per_pixel', value: bytesPerPixel, weight: 0.7 },
-        { type: 'laplacian_variance', value: 0, weight: 0.3, note: 'Pending implementation' }
+        { type: 'blur_score', value: result.blurScore, weight: 1.0 },
+        { type: 'bytes_per_pixel', value: result.metrics.bytesPerPixel },
+        { type: 'aspect_deviation', value: result.metrics.ratioDeviation },
+        { type: 'megapixels', value: result.metrics.megapixels }
       ]
     };
   } catch (error) {
