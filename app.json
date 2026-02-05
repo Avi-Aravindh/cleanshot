@@ -5,6 +5,11 @@
     "version": "1.0.0",
     "owner": "aviataravindhdotme",
     "orientation": "portrait",
+    "extra": {
+      "eas": {
+        "projectId": "3b8f8c66-79c3-41f9-82ec-d0cc2d2c2d30"
+      }
+    },
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
