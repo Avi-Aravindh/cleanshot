@@ -31,8 +31,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-sqlite",
-      "expo-face-detector"
+      "expo-sqlite"
     ],
     "newArchEnabled": true
   }
