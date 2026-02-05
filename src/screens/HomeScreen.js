@@ -46,45 +46,45 @@ const HomeScreen = ({ navigation }) => {
   const totalPhotos = scanResults.screenshots + scanResults.blurry + scanResults.duplicates;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.backgroundSecondary }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>CleanShot</Text>
+        <Text style={[styles.title, { color: colors.primary }]}>CleanShot</Text>
         <TouchableOpacity style={styles.settingsButton} onPress={() => navigation.navigate('Settings')}>
-          <Ionicons name="settings-outline" size={24} color="#64748B" />
+          <Ionicons name="settings-outline" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Stats Summary */}
-        <View style={styles.statsCard}>
-          <Text style={styles.statsTitle}>Your Photo Library</Text>
+        <View style={[styles.statsCard, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.statsTitle, { color: colors.textSecondary }]}>Your Photo Library</Text>
           {isScanning || isLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#10B981" />
-              <Text style={styles.loadingText}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
                 {scanProgress.phase && `${scanProgress.phase}: ${scanProgress.current}/${scanProgress.total}` || 'Scanning your photos...'}
               </Text>
             </View>
           ) : totalPhotos > 0 ? (
             <>
-              <Text style={styles.statsNumber}>{totalPhotos}</Text>
-              <Text style={styles.statsLabel}>photos can be cleaned</Text>
-              <Text style={styles.spaceSaved}>{formatBytes(scanResults.totalSpace)} could be freed</Text>
+              <Text style={[styles.statsNumber, { color: colors.text }]}>{totalPhotos}</Text>
+              <Text style={[styles.statsLabel, { color: colors.textSecondary }]}>photos can be cleaned</Text>
+              <Text style={[styles.spaceSaved, { color: colors.success }]}>{formatBytes(scanResults.totalSpace)} could be freed</Text>
             </>
           ) : hasScanned ? (
             <View style={styles.emptyState}>
-              <Ionicons name="checkmark-circle" size={48} color="#10B981" />
-              <Text style={styles.emptyTitle}>All clean! ✨</Text>
-              <Text style={styles.emptyText}>No clutter found in your library</Text>
+              <Ionicons name="checkmark-circle" size={48} color={colors.success} />
+              <Text style={[styles.emptyTitle, { color: colors.success }]}>All clean! ✨</Text>
+              <Text style={[styles.emptyText, { color: colors.textTertiary }]}>No clutter found in your library</Text>
             </View>
           ) : (
-            <Text style={styles.emptyText}>Tap scan to find clutter</Text>
+            <Text style={[styles.emptyText, { color: colors.textTertiary }]}>Tap scan to find clutter</Text>
           )}
         </View>
 
         {/* Scan Button */}
-        <TouchableOpacity 
-          style={[styles.scanButton, isLoading && styles.scanButtonDisabled]} 
+        <TouchableOpacity
+          style={[styles.scanButton, { backgroundColor: colors.primary }, isLoading && styles.scanButtonDisabled]}
           onPress={handleScan}
           disabled={isLoading}
         >
