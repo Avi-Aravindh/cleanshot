@@ -389,9 +389,15 @@ export const scanPhotos = async (options = {}) => {
       }
 
       try {
+        // Skip favorited photos - never suggest deletion
+        const assetInfo = await MediaLibrary.getAssetInfoAsync(asset.id);
+        if (assetInfo.isFavorite) {
+          console.log(`Skipping favorited photo: ${asset.filename}`);
+          continue;
+        }
+
         const screenshotResult = await isScreenshot(asset);
         if (screenshotResult.isScreenshot) {
-          const assetInfo = await MediaLibrary.getAssetInfoAsync(asset.id);
           categories.totalSpace += assetInfo.fileSize || 0;
           categories.screenshots.push({
             ...asset,
