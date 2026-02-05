@@ -6,8 +6,10 @@ import { useFocusEffect } from '@react-navigation/native';
 import { deletePhotos } from '../utils/photoScanner';
 import useStore from '../store';
 import { formatBytes } from '../utils/photoScanner';
+import { useTheme } from '../theme/useTheme';
 
 const CategoryScreen = ({ route, navigation }) => {
+  const { colors, isDark } = useTheme();
   const type = route?.params?.type || 'screenshots';
   const { scanResults, addCleanupRecord, setScanResults } = useStore();
   const [selectedPhotos, setSelectedPhotos] = useState([]);
