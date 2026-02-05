@@ -424,6 +424,13 @@ export const scanPhotos = async (options = {}) => {
     const duplicateResults = await findDuplicates(nonScreenshots, includeVisualSimilarity);
     for (const dup of duplicateResults) {
       const assetInfo = await MediaLibrary.getAssetInfoAsync(dup.duplicate.id);
+
+      // Skip favorited duplicates
+      if (assetInfo.isFavorite) {
+        console.log(`Skipping favorited duplicate: ${dup.duplicate.filename}`);
+        continue;
+      }
+
       categories.totalSpace += assetInfo.fileSize || 0;
       categories.duplicates.push({
         ...dup.duplicate,
